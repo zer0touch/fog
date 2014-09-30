@@ -19,7 +19,11 @@ module Fog
             [:deploy, :powerOn, :name].each do |a|
               attrs[a] = @configuration[a] if @configuration.key?(a)
             end
-            
+
+            if @configuration[:vapp_name]
+              attrs[:name] = @configuration[:vapp_name]
+            end
+
             attrs
           end
 
@@ -29,26 +33,30 @@ module Fog
           end
 
           def build_vapp_instantiation_params(xml)
-            xml.Description @configuration[:Description]
-            
-            vapp = @configuration[:InstantiationParams]
+            if @configuration[:Description]
+              xml.Description @configuration[:Description]
+            end
 
-            xml.InstantiationParams {
-              xml.DefaultStorageProfileSection {
-                  xml.StorageProfile vapp[:DefaultStorageProfile]
-              } if (vapp.key? :DefaultStorageProfile)
-              xml.NetworkConfigSection {
-                xml['ovf'].Info
-                vapp[:NetworkConfig].each do |network|
-                  xml.NetworkConfig(:networkName => network[:networkName]) {
-                    xml.Configuration {
-                      xml.ParentNetwork(:href => network[:networkHref])
-                      xml.FenceMode network[:fenceMode]
+            if @configuration[:InstantiationParams]
+              vapp = @configuration[:InstantiationParams]
+
+              xml.InstantiationParams {
+                xml.DefaultStorageProfileSection {
+                    xml.StorageProfile vapp[:DefaultStorageProfile]
+                } if (vapp.key? :DefaultStorageProfile)
+                xml.NetworkConfigSection {
+                  xml['ovf'].Info
+                  vapp[:NetworkConfig].each do |network|
+                    xml.NetworkConfig(:networkName => network[:networkName]) {
+                      xml.Configuration {
+                        xml.ParentNetwork(:href => network[:networkHref])
+                        xml.FenceMode network[:fenceMode]
+                      }
                     }
-                  }
-                end if vapp[:NetworkConfig]
+                  end if vapp[:NetworkConfig]
+                }
               }
-            }
+            end
           end
 
           def build_source_items(xml)
@@ -58,7 +66,7 @@ module Fog
                 xml.Source(:name =>vm[:name], :href => vm[:href])
                 xml.InstantiationParams {
                   if vm[:networks]
-                    xml.NetworkConnectionSection(:href => "#{vm[:href]}/networkConnectionSection/", :type => "application/vnd.vmware.vcloud.networkConnectionSection+xml", 'xmlns:ovf' => "http://schemas.dmtf.org/ovf/envelope/1", "ovf:required" => "false") {
+                    xml.NetworkConnectionSection(:type => "application/vnd.vmware.vcloud.networkConnectionSection+xml", 'xmlns:ovf' => "http://schemas.dmtf.org/ovf/envelope/1", "ovf:required" => "false") {
                       xml['ovf'].Info
                       xml.PrimaryNetworkConnectionIndex 0
                       vm[:networks].each_with_index do |network, i|
