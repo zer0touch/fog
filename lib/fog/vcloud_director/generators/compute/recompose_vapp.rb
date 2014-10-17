@@ -16,22 +16,8 @@ module Fog
                   build_vapp_instantiation_params(xml)
                   build_source_items(xml)
                 end
-
-                if has_delete_items?
-                  build_delete_items(xml)
-                end
               }
             end.to_xml
-          end
-
-          private
-
-          def has_delete_items?
-            !!@configuration[:vms_to_delete]
-          end
-
-          def build_delete_items(xml)
-             @configuration[:vms_to_delete].each { |vm| xml.DeleteItem(:href => vm.href) }
           end
 
         end
