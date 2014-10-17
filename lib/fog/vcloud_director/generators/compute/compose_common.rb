@@ -28,7 +28,7 @@ module Fog
           end
 
           def has_source_items?
-            (@configuration[:source_vms] && (@configuration[:source_vms].size > 0)) || 
+            (@configuration[:source_vms] && (@configuration[:source_vms].size > 0)) ||
             (@configuration[:source_templates] && (@configuration[:source_templates].size > 0))
           end
 
@@ -38,25 +38,42 @@ module Fog
             end
 
             if @configuration[:InstantiationParams]
-              vapp = @configuration[:InstantiationParams]
+              params = @configuration[:InstantiationParams]
 
               xml.InstantiationParams {
                 xml.DefaultStorageProfileSection {
-                    xml.StorageProfile vapp[:DefaultStorageProfile]
-                } if (vapp.key? :DefaultStorageProfile)
+                    xml.StorageProfile params[:DefaultStorageProfile]
+                } if (params.key? :DefaultStorageProfile)
                 xml.NetworkConfigSection {
                   xml['ovf'].Info
-                  vapp[:NetworkConfig].each do |network|
+                  params[:NetworkConfigSection][:NetworkConfig].each do |network|
                     xml.NetworkConfig(:networkName => network[:networkName]) {
                       xml.Configuration {
-                        xml.ParentNetwork(:href => network[:networkHref])
-                        xml.FenceMode network[:fenceMode]
+                        config = network[:Configuration]
+                        xml.IpScopes {
+                          ip_scope = config[:IpScopes][:IpScope]
+                          xml.IpScope {
+                            xml.IsInherited ip_scope[:IsInherited] if ip_scope.key?(:IsInherited)
+                            xml.Gateway ip_scope[:Gateway]
+                            xml.Netmask ip_scope[:Netmask]
+                            xml.IpRanges {
+                              xml.IpRange {
+                                ip_range = ip_scope[:IpRanges][:IpRange]
+                                xml.StartAddress ip_range[:StartAddress]
+                                xml.EndAddress ip_range[:EndAddress]
+                              }
+                            }
+                          }
+                        } if (config.key? :IpScopes)
+                        xml.ParentNetwork(:href => config[:ParentNetwork][:href]) unless config[:ParentNetwork].nil?
+                        xml.FenceMode config[:FenceMode]
                       }
                     }
-                  end if vapp[:NetworkConfig]
+                  end if params.key?(:NetworkConfigSection)
                 }
               }
             end
+
           end
 
           def build_source_items(xml)
@@ -70,7 +87,7 @@ module Fog
                       xml['ovf'].Info
                       xml.PrimaryNetworkConnectionIndex 0
                       vm[:networks].each_with_index do |network, i|
-                        xml.NetworkConnection(:network => network[:networkName]) {
+                        xml.NetworkConnection(:xmlns => 'http://www.vmware.com/vcloud/v1.5', :network => network[:networkName]) {
                           xml.NetworkConnectionIndex i
                           xml.IpAddress network[:IpAddress] if (network.key? :IpAddress)
                           xml.ExternalIpAddress network[:ExternalIpAddress] if (network.key? :ExternalIpAddress)
