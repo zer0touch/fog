@@ -13,6 +13,7 @@ module Fog
         attribute :type
         attribute :href
         attribute :status
+        attribute :deployed
         attribute :operating_system
         attribute :ip_address
         attribute :cpu, :type => :integer
@@ -82,6 +83,17 @@ module Fog
           requires :id
           begin
             response = service.post_reset_vapp(id)
+          rescue Fog::Compute::VcloudDirector::BadRequest => ex
+            Fog::Logger.debug(ex.message)
+            return false
+          end
+          service.process_task(response.body)
+        end
+
+        def undeploy
+          requires :id
+          begin
+            response = service.post_undeploy_vapp(id)
           rescue Fog::Compute::VcloudDirector::BadRequest => ex
             Fog::Logger.debug(ex.message)
             return false

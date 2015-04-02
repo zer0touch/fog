@@ -11,11 +11,10 @@ module Fog
           end
 
           def generate_xml
-            attrs = @attrs
             Nokogiri::XML::Builder.new do
               Vm('xmlns' => 'http://www.vmware.com/vcloud/v1.5', 'name' => attrs[:name]) {
                 Description attrs[:Description] if attrs.key?(:Description)
-                if  attrs.key?(:StorageProfile)
+                if attrs.key?(:StorageProfile)
                   StorageProfile(
                     'type' => 'application/vnd.vmware.vcloud.vdcStorageProfile+xml',
                     'name' => attrs[:StorageProfile][:name],

@@ -63,6 +63,7 @@ module Fog
                 Description options[:Description]
               end
               if instantiation_params = options[:InstantiationParams]
+
                 InstantiationParams {
                   if section = instantiation_params[:LeaseSettingsSection]
                     LeaseSettingsSection {
@@ -90,7 +91,22 @@ module Fog
                           NetworkConfig(:networkName => network_config[:networkName]) {
                             if configuration = network_config[:Configuration]
                               Configuration {
-                                ParentNetwork(configuration[:ParentNetwork])
+                                IpScopes {
+                                  ip_scope = configuration[:IpScopes][:IpScope]
+                                  IpScope {
+                                    IsInherited ip_scope[:IsInherited] if ip_scope.key?(:IsInherited)
+                                    Gateway ip_scope[:Gateway]
+                                    Netmask ip_scope[:Netmask]
+                                    IpRanges {
+                                      IpRange {
+                                        ip_range = ip_scope[:IpRanges][:IpRange]
+                                        StartAddress ip_range[:StartAddress]
+                                        EndAddress ip_range[:EndAddress]
+                                      }
+                                    }
+                                  }
+                                } if (configuration.key? :IpScopes)
+                                ParentNetwork(configuration[:ParentNetwork]) if configuration.key?(:ParentNetwork)
                                 FenceMode configuration[:FenceMode]
                               }
                             end
